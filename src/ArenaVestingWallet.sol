@@ -82,7 +82,7 @@ contract ArenaVestingWallet is VestingWalletCliff {
     }
 
     /**
-     * @notice Renouncing ownership will transfer all locked ARENA tokens to the vestor address.
+     * @notice Cannot renounce ownership.
      */
     function renounceOwnership() public view override onlyOwner {
         revert Arena_CannotRenounceOwnership();
