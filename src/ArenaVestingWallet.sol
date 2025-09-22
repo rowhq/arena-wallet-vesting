@@ -2,15 +2,18 @@
 
 pragma solidity 0.8.25;
 
-import {VestingWalletCliff, VestingWallet} from "openzeppelin-contracts/contracts/finance/VestingWalletCliff.sol";
-import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    Initializable,
+    VestingWalletCliffUpgradeable
+} from "@openzeppelin/contracts-upgradeable/finance/VestingWalletCliffUpgradeable.sol";
 
-contract ArenaVestingWallet is VestingWalletCliff {
+contract ArenaVestingWallet is Initializable, VestingWalletCliffUpgradeable {
     using SafeERC20 for IERC20;
 
     IERC20 public constant ARENA = IERC20(0xB8d7710f7d8349A506b75dD184F05777c82dAd0C);
 
-    uint256 public amount;
+    uint256 public allocation;
     bool public started;
     uint64 public intervals;
 
@@ -31,13 +34,20 @@ contract ArenaVestingWallet is VestingWalletCliff {
     error Arena_InvalidParams();
     error Arena_InvalidToken(address token);
 
-    constructor(VestingParams memory params)
-        VestingWalletCliff(params.cliff)
-        VestingWallet(params.beneficiary, params.start, params.intervals * params.intervalDuration)
-    {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(VestingParams memory params) public initializer {
         if (params.beneficiary == address(0) || params.intervals == 0 || params.intervalDuration == 0) {
             revert Arena_InvalidParams();
         }
+
+        intervals = params.intervals;
+
+        __VestingWallet_init(params.beneficiary, params.start, params.intervals * params.intervalDuration);
+        __VestingWalletCliff_init(params.cliff);
     }
 
     /**
@@ -49,7 +59,7 @@ contract ArenaVestingWallet is VestingWalletCliff {
         if (_amount == 0) revert Arena_InvalidAmount();
 
         ARENA.safeTransferFrom(msg.sender, address(this), _amount);
-        amount = _amount;
+        allocation = _amount;
         started = true;
 
         emit Arena_VestingDeposit(address(ARENA), _amount);
@@ -71,7 +81,7 @@ contract ArenaVestingWallet is VestingWalletCliff {
     function vestedAmount(address token, uint64 timestamp) public view override returns (uint256) {
         if (token != address(ARENA)) revert Arena_InvalidToken(token);
 
-        return _vestingSchedule(amount, timestamp);
+        return _vestingSchedule(allocation, timestamp);
     }
 
     /**
@@ -95,7 +105,7 @@ contract ArenaVestingWallet is VestingWalletCliff {
     function _vestingSchedule(uint256 totalAllocation, uint64 timestamp)
         internal
         view
-        override(VestingWalletCliff)
+        override /* (VestingWalletCliff) */
         returns (uint256)
     {
         if (timestamp < cliff()) return 0;
