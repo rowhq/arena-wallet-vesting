@@ -42,7 +42,7 @@ contract ArenaVestingWallet is Initializable, IArenaVestingWallet, VestingWallet
         if (started) revert Arena_VestingStarted(true);
         if (_amount == 0) revert Arena_InvalidAmount();
 
-        ARENA.safeTransferFrom(msg.sender, address(this), _amount);
+        ARENA.safeTransferFrom(_msgSender(), address(this), _amount);
         allocation = _amount;
         started = true;
 
