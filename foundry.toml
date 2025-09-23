@@ -3,4 +3,18 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+# Fuzzing configuration
+[fuzz]
+runs = 256                    # Number of test scenarios to run
+max_test_rejects = 65536      # Maximum number of rejected test inputs before failing
+seed = '0x3e8'               # Optional: seed for reproducible tests
+dictionary_weight = 40        # Weight for dictionary entries (0-100)
+include_storage = true        # Include storage variables in fuzz inputs
+include_push_bytes = true     # Include PUSH opcodes arguments in fuzz inputs
+
+# Invariant testing configuration
+[invariant]
+runs = 256                    # Number of runs for invariant tests
+depth = 15                    # Number of calls to make in each run
+fail_on_revert = false        # Whether to fail on revert
+call_override = false         # Override unsafe external calls

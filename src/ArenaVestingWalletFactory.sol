@@ -10,6 +10,7 @@ import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol"
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 import {ArenaVestingWallet} from "./ArenaVestingWallet.sol";
+import {VestingParams} from "./IArenaVestingWallet.sol";
 
 contract ArenaVestingWalletFactory is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     UpgradeableBeacon public walletBeacon;
@@ -41,17 +42,13 @@ contract ArenaVestingWalletFactory is Initializable, AccessControlUpgradeable, U
      * @notice Creates a new vesting wallet for a beneficiary
      * @param params The parameters for the vesting wallet
      */
-    function create(ArenaVestingWallet.VestingParams memory params)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (address)
-    {
+    function create(VestingParams memory params) external onlyRole(DEFAULT_ADMIN_ROLE) returns (address) {
         bytes4 selector = ArenaVestingWallet.initialize.selector;
         bytes memory initData = abi.encodeWithSelector(selector, params);
 
         BeaconProxy vestingWallet = new BeaconProxy(address(walletBeacon), initData);
 
-        bytes32 key = getVestingWalletKey(params.beneficiary);
+        bytes32 key = _setVestingWalletKey(params.beneficiary);
         vestingWallets[key] = address(vestingWallet);
 
         emit Arena_VestingWalletCreated(params.beneficiary, address(vestingWallet));
@@ -69,11 +66,34 @@ contract ArenaVestingWalletFactory is Initializable, AccessControlUpgradeable, U
     }
 
     /**
-     * @dev computes the key for the vesting wallet mapping
-     * @param beneficiary The address of the beneficiary
+     * @dev computes the last key for the vesting wallet
+     * @return last vesting wallet key of the beneficiary
      */
-    function getVestingWalletKey(address beneficiary) public returns (bytes32) {
-        return keccak256(abi.encodePacked(beneficiary, ++beneficiaries[beneficiary]));
+    function getVestingWalletKey(address beneficiary) external view returns (bytes32) {
+        return _computeVestingWalletKey(beneficiary, beneficiaries[beneficiary]);
+    }
+
+    /**
+     * @dev computes the key for the vesting wallet given the nonce counter
+     * @return vesting wallet key
+     */
+    function getVestingWalletKey(address beneficiary, uint256 nonce) external pure returns (bytes32) {
+        return _computeVestingWalletKey(beneficiary, nonce);
+    }
+
+    /**
+     * @dev computes the next key for the vesting wallet
+     * @return next vesting wallet key
+     */
+    function _setVestingWalletKey(address beneficiary) internal returns (bytes32) {
+        return _computeVestingWalletKey(beneficiary, ++beneficiaries[beneficiary]);
+    }
+
+    /**
+     * @dev computes the key for the vesting wallet mapping
+     */
+    function _computeVestingWalletKey(address beneficiary, uint256 nonce) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(beneficiary, nonce));
     }
 
     /// @notice Authorizes an upgrade to a new implementation

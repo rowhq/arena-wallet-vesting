@@ -7,8 +7,9 @@ import {
     Initializable,
     VestingWalletCliffUpgradeable
 } from "@openzeppelin/contracts-upgradeable/finance/VestingWalletCliffUpgradeable.sol";
+import {IArenaVestingWallet, VestingParams} from "./IArenaVestingWallet.sol";
 
-contract ArenaVestingWallet is Initializable, VestingWalletCliffUpgradeable {
+contract ArenaVestingWallet is Initializable, IArenaVestingWallet, VestingWalletCliffUpgradeable {
     using SafeERC20 for IERC20;
 
     IERC20 public constant ARENA = IERC20(0xB8d7710f7d8349A506b75dD184F05777c82dAd0C);
@@ -16,23 +17,6 @@ contract ArenaVestingWallet is Initializable, VestingWalletCliffUpgradeable {
     uint256 public allocation;
     bool public started;
     uint64 public intervals;
-
-    struct VestingParams {
-        address beneficiary;
-        uint64 cliff;
-        uint64 start;
-        uint64 intervals;
-        uint64 intervalDuration;
-    }
-
-    event Arena_VestingDeposit(address indexed token, uint256 amount);
-
-    error Arena_CannotTransferOwnership();
-    error Arena_CannotRenounceOwnership();
-    error Arena_InvalidAmount();
-    error Arena_VestingStarted(bool started);
-    error Arena_InvalidParams();
-    error Arena_InvalidToken(address token);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
