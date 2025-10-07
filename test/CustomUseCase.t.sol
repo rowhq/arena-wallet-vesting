@@ -27,9 +27,15 @@ contract ArenaVestingWalletTest is Test {
     uint64 public constant INTERVAL_DURATION = 30 days;
     uint64 public constant INTERVALS = 12;
 
+    // Avalanche mainnet RPC
+    string constant AVALANCHE_RPC_URL = "https://api.avax.network/ext/bc/C/rpc";
+
     event Arena_VestingDeposit(address indexed token, uint256 amount);
 
     function setUp() public {
+        // Fork Avalanche mainnet to get current timestamp
+        vm.createSelectFork(AVALANCHE_RPC_URL);
+        
         // Deploy mock ARENA token
         arenaToken = new MockArenaToken();
 
@@ -48,13 +54,15 @@ contract ArenaVestingWalletTest is Test {
 
     function test_ThreeYearQuarterlyVestingSimulation() public {
         console.log("\n=== 3-YEAR QUARTERLY VESTING SIMULATION ===");
+        console.log("Forked from Avalanche Mainnet");
+        console.log("Current Block Time:", _formatTimestamp(block.timestamp));
         console.log("Total Allocation: 500,000 ARENA tokens");
         console.log("Vesting Period: 3 years (36 months)");
         console.log("Release Schedule: Quarterly (every 3 months)");
         console.log("Total Releases: 12");
         console.log("Tokens per Quarter: ~41,666.67 ARENA\n");
 
-        // 3-year vesting parameters
+        // 3-year vesting parameters starting from current mainnet time
         uint64 startTime = uint64(block.timestamp);
         uint64 cliffDuration = 0; // No cliff for this example
         uint64 intervalDuration = 90 days; // Quarterly (approximately 3 months)
@@ -213,8 +221,42 @@ contract ArenaVestingWalletTest is Test {
     }
 
     function _formatTimestamp(uint256 timestamp) internal pure returns (string memory) {
-        // Simple date representation (would need proper date library for production)
-        return string.concat("Timestamp: ", _toString(timestamp));
+        // Convert timestamp to ISO-like format  
+        // Base calculation from Unix epoch
+        uint256 secondsPerDay = 86400;
+        uint256 daysPerYear = 365;
+        uint256 secondsPerYear = secondsPerDay * daysPerYear;
+        
+        // Calculate years since 1970
+        uint256 yearsSince1970 = timestamp / secondsPerYear;
+        uint256 year = 1970 + yearsSince1970;
+        
+        // Calculate remaining seconds in current year
+        uint256 remainingSeconds = timestamp % secondsPerYear;
+        uint256 dayOfYear = remainingSeconds / secondsPerDay;
+        
+        // Approximate month and day (simplified - doesn't account for leap years)
+        uint256 month;
+        uint256 day;
+        
+        if (dayOfYear < 31) { month = 1; day = dayOfYear + 1; }
+        else if (dayOfYear < 59) { month = 2; day = dayOfYear - 30; }
+        else if (dayOfYear < 90) { month = 3; day = dayOfYear - 58; }
+        else if (dayOfYear < 120) { month = 4; day = dayOfYear - 89; }
+        else if (dayOfYear < 151) { month = 5; day = dayOfYear - 119; }
+        else if (dayOfYear < 181) { month = 6; day = dayOfYear - 150; }
+        else if (dayOfYear < 212) { month = 7; day = dayOfYear - 180; }
+        else if (dayOfYear < 243) { month = 8; day = dayOfYear - 211; }
+        else if (dayOfYear < 273) { month = 9; day = dayOfYear - 242; }
+        else if (dayOfYear < 304) { month = 10; day = dayOfYear - 272; }
+        else if (dayOfYear < 334) { month = 11; day = dayOfYear - 303; }
+        else { month = 12; day = dayOfYear - 333; }
+        
+        return string.concat(
+            _toString(year), "-",
+            month < 10 ? "0" : "", _toString(month), "-",
+            day < 10 ? "0" : "", _toString(day)
+        );
     }
 
     function _toString(uint256 value) internal pure returns (string memory) {
