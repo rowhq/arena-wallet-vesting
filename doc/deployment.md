@@ -61,19 +61,15 @@ After deploying the implementation, you can deploy multiple proxy contracts for 
 **Example - 3-Year Quarterly Vesting:**
 
 ```bash
-# Get current timestamp (Unix)
-NOW=$(date +%s)
-
-# Deploy proxy with 3-year quarterly vesting
-./script/deploy-vesting-wallet.sh \
-  --implementation 0x123...abc \
-  --admin 0x456...def \
-  --beneficiary 0x789...ghi \
-  --start $NOW \
-  --cliff 0 \
-  --interval 7776000 \
-  --intervals 12 \
-  --network fuji
+./script/deploy-vesting-wallet.sh
+  --implementation 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+  --admin 0x5c4d2bd3510C8B51eDB17766d3c96EC637326999
+  --beneficiary 0x38C5479620f6C2f29677F04d89E356cF6E75CFde
+  --start 1759858262
+  --cliff 0
+  --interval 7776000
+  --intervals 12
+  --network mainnet
 ```
 
 ## Full Deployment Flow
