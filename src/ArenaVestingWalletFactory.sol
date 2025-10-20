@@ -19,6 +19,10 @@ contract ArenaVestingWalletFactory is Initializable, AccessControlUpgradeable, U
     mapping(bytes32 key => address vestingWallet) public vestingWallets;
     mapping(address beneficiary => uint16 nonce) public beneficiaries;
 
+    // Enumerable storage for admin dashboard
+    address[] public allVestingWallets;
+    mapping(address beneficiary => address[] vestingWallets) public beneficiaryVestingWallets;
+
     event Arena_VestingWalletCreated(address indexed beneficiary, address indexed vestingWallet);
     event BeaconUpgraded(address indexed implementation);
 
@@ -50,6 +54,10 @@ contract ArenaVestingWalletFactory is Initializable, AccessControlUpgradeable, U
 
         bytes32 key = _setVestingWalletKey(params.beneficiary);
         vestingWallets[key] = address(vestingWallet);
+
+        // Add to enumerable storage
+        allVestingWallets.push(address(vestingWallet));
+        beneficiaryVestingWallets[params.beneficiary].push(address(vestingWallet));
 
         emit Arena_VestingWalletCreated(params.beneficiary, address(vestingWallet));
 
@@ -94,6 +102,64 @@ contract ArenaVestingWalletFactory is Initializable, AccessControlUpgradeable, U
      */
     function _computeVestingWalletKey(address beneficiary, uint256 nonce) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(beneficiary, nonce));
+    }
+
+    /**
+     * @notice Returns all vesting wallets created by this factory
+     * @return Array of all vesting wallet addresses
+     */
+    function getAllVestingWallets() external view returns (address[] memory) {
+        return allVestingWallets;
+    }
+
+    /**
+     * @notice Returns the total number of vesting wallets created
+     * @return Total count of vesting wallets
+     */
+    function getVestingWalletsCount() external view returns (uint256) {
+        return allVestingWallets.length;
+    }
+
+    /**
+     * @notice Returns all vesting wallets for a specific beneficiary
+     * @param beneficiary The beneficiary address
+     * @return Array of vesting wallet addresses for the beneficiary
+     */
+    function getBeneficiaryVestingWallets(address beneficiary) external view returns (address[] memory) {
+        return beneficiaryVestingWallets[beneficiary];
+    }
+
+    /**
+     * @notice Returns the number of vesting wallets for a specific beneficiary
+     * @param beneficiary The beneficiary address
+     * @return Count of vesting wallets for the beneficiary
+     */
+    function getBeneficiaryVestingWalletsCount(address beneficiary) external view returns (uint256) {
+        return beneficiaryVestingWallets[beneficiary].length;
+    }
+
+    /**
+     * @notice Returns a paginated list of vesting wallets
+     * @param offset Starting index
+     * @param limit Maximum number of results
+     * @return Array of vesting wallet addresses
+     */
+    function getVestingWalletsPaginated(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory)
+    {
+        uint256 total = allVestingWallets.length;
+        if (offset >= total) return new address[](0);
+
+        uint256 end = offset + limit > total ? total : offset + limit;
+        uint256 size = end - offset;
+
+        address[] memory result = new address[](size);
+        for (uint256 i = 0; i < size; i++) {
+            result[i] = allVestingWallets[offset + i];
+        }
+        return result;
     }
 
     /// @notice Authorizes an upgrade to a new implementation
